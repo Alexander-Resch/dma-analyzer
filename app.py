@@ -40,7 +40,12 @@ def main():
 
     #@st.cache(persist=True)
     def plot_ellipse_plotly(df):
-        fig = px.scatter(df, x = df.columns[0], y = df.columns[1],title='Load and Displacement Data')
+        fig = px.scatter(df,
+                         x = df.columns[0],
+                         y = df.columns[1],
+                         title='Load and Displacement Data',
+                         opacity=0.3
+                         )
         return fig
 
     st.set_option('deprecation.showPyplotGlobalUse', False)

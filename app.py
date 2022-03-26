@@ -29,8 +29,8 @@ def main():
         ax = f.add_subplot(1,1,1)
         return f, ax
 
-    def plot_time_series_plotly(df):
-       
+    #def plot_time_series_plotly(df):
+
 
     st.set_option('deprecation.showPyplotGlobalUse', False)
     st.title("DMA Data Analyzer")

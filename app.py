@@ -9,7 +9,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import plot_confusion_matrix, plot_roc_curve, plot_precision_recall_curve
 from sklearn.metrics import precision_score, recall_score
 import matplotlib.pyplot as plt
-#import plotly.figure_factory as ff
+import plotly.figure_factory as ff
+import plotly.express as px
+from scipy.signal import detrend, savgol_filter
 
 def main():
 
@@ -19,18 +21,27 @@ def main():
         data = pd.read_csv(uploaded_file,header = header)
         return data
 
+
     @st.cache(persist=True)
     def reduce_data(data,header,disp_col,load_col):
         data = data.iloc[header:,[disp_col,load_col]]
         return data
 
+    #@st.cache(persist=True)
     def plot_time_series(df):
         f = plt.figure()
         ax = f.add_subplot(1,1,1)
         return f, ax
 
-    #def plot_time_series_plotly(df):
+    #@st.cache(persist=True)
+    def plot_time_series_plotly(df):
+        fig = px.line(df,title='Load and Displacement Data')#, x = df.columns[0], y = df.columns[1])
+        return fig
 
+    #@st.cache(persist=True)
+    def plot_ellipse_plotly(df):
+        fig = px.scatter(df, x = df.columns[0], y = df.columns[1],title='Load and Displacement Data')
+        return fig
 
     st.set_option('deprecation.showPyplotGlobalUse', False)
     st.title("DMA Data Analyzer")
@@ -47,11 +58,10 @@ def main():
                                      tuple([i for i in df.columns])
                                      )
 
-    col1, col2 = st.columns(2)
     drop_first = int(st.sidebar.number_input('Drop first n rows', min_value=100, step=100, key='drop_first'))
-    drop_last = int(st.sidebar.number_input('Drop last m rows', min_value=0, step=100, key='drop_last'))
+    keep = int(st.sidebar.number_input('Keep m rows', value=len(df), min_value=0, max_value=50000, step=100, key='keep'))
 
-    df_reduced = df[columns].iloc[drop_first:len(df)-drop_last].astype(float)
+    df_reduced = df[columns].iloc[drop_first:drop_first+keep].astype(float)
 
     if st.sidebar.checkbox("Show Data", True):
         st.subheader(uploaded_file.name + ' - Preview')
@@ -60,37 +70,31 @@ def main():
 
         st.write(df_reduced.head())
 
-    f1, ax1 = plot_time_series(df_reduced)
-    df_reduced.plot(ax=ax1)
-    st.pyplot(f1)
 
-    st.sidebar.subheader("Choose Classifier")
-    classifier = st.sidebar.selectbox("Classifier", ("Support Vector Machine (SVM)", "Logistic Regression", "Random Forest"))
 
-    if classifier == 'Support Vector Machine (SVM)':
-        st.sidebar.subheader("Model Hyperparameters")
-        C = st.sidebar.number_input("C (Regularization parameter)", 0.01, 10.0, step=0.01, key='C_SVM')
-        kernel = st.sidebar.radio("Kernel", ("rbf", "linear"), key='kernel')
-        gamma = st.sidebar.radio("Gamma (Kernel Coefficient)", ("scale", "auto"), key='gamma')
+    st.sidebar.subheader("Data Processing")
+    if st.sidebar.checkbox('Detrend', False):
+        df_reduced[df_reduced.columns[1]] = detrend(df_reduced[df_reduced.columns[1]])
 
-        metrics = st.sidebar.multiselect("What metrics to plot?",
-                                         (
-                                          'Confusion Matrix',
-                                          'ROC Curve',
-                                          'Precision-Recall Curve'
-                                          )
-                                         )
+    if st.sidebar.checkbox('Savitzky-Golay', False):
+        order = st.sidebar.slider('Savitzky Golay Polynomial Order', value=1, min_value=1,step=2,max_value=31)
+
+
+        window = st.sidebar.slider('Savitzky Golay Window Length', value=3, min_value=order+2,step=1,max_value=33)
+
+        df_reduced[df_reduced.columns[1]] = savgol_filter(df_reduced[df_reduced.columns[1]],
+                                                          polyorder=order,
+                                                          window_length=window)
+
+    f1 = plot_time_series_plotly(df_reduced)
+    st.plotly_chart(f1, use_container_width=True)
+
+    f2 = plot_ellipse_plotly(df_reduced)
+    st.plotly_chart(f2, use_container_width=True)
+
         
-        if st.sidebar.button("Classify", key='classify'):
-            st.subheader("Support Vector Machine (SVM) Results")
-            model = SVC(C=C, kernel=kernel, gamma=gamma)
-            model.fit(x_train, y_train)
-            accuracy = model.score(x_test, y_test)
-            y_pred = model.predict(x_test)
-            st.write("Accuracy: ", accuracy.round(2))
-            st.write("Precision: ", precision_score(y_test, y_pred, labels=class_names).round(2))
-            st.write("Recall: ", recall_score(y_test, y_pred, labels=class_names).round(2))
-            plot_metrics(metrics)
+    if st.sidebar.button("Classify", key='classify'):
+        st.write("That's it, folks!")
 
 
 

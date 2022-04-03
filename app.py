@@ -45,9 +45,15 @@ def main():
 
     @st.cache(persist=True)
     def plot_ellipse_plotly(df):
+
+        if 'Filtered' in df.columns:
+            y = 'Filtered'
+        else:
+            y = df.columns[1]
+
         fig = px.scatter(df,
-                         x = df.columns[0],
-                         y = df.columns[1],
+                         x=df.columns[0],
+                         y=y,
                          title='Load and Displacement Data',
                          opacity=0.3
                          )
@@ -80,18 +86,15 @@ def main():
 
     df_reduced = df[columns].iloc[drop_first:drop_first+keep].astype(float)
 
-    if st.sidebar.checkbox("Show Data", True):
-        st.subheader(uploaded_file.name + ' - Preview')
-        st.write(df.head())
-        st.subheader('Selected Data - Preview')
 
-        st.write(df_reduced.head())
 
 
 
     st.sidebar.subheader("Data Processing")
     if st.sidebar.checkbox('Detrend', False):
-        df_reduced[df_reduced.columns[1]] = detrend(df_reduced[df_reduced.columns[1]])
+        #df_reduced[df_reduced.columns[1]] = detrend(df_reduced[df_reduced.columns[1]])
+
+        df_reduced['Filtered'] = detrend(df_reduced[df_reduced.columns[1]])
 
     if st.sidebar.checkbox('Savitzky-Golay', False):
         order = st.sidebar.slider('Savitzky Golay Polynomial Order', value=1, min_value=1,step=2,max_value=31)
@@ -99,9 +102,22 @@ def main():
 
         window = st.sidebar.slider('Savitzky Golay Window Length', value=3, min_value=order+2,step=1,max_value=33)
 
-        df_reduced[df_reduced.columns[1]] = savgol_filter(df_reduced[df_reduced.columns[1]],
+        if 'Filtered' in df_reduced.columns:
+
+            df_reduced['Filtered'] = savgol_filter(df_reduced['Filtered'],
                                                           polyorder=order,
                                                           window_length=window)
+        else:
+            df_reduced['Filtered'] = savgol_filter(df_reduced[df_reduced.columns[1]],
+                                                          polyorder=order,
+                                                          window_length=window)
+
+    if st.sidebar.checkbox("Show Data", True):
+        st.subheader(uploaded_file.name + ' - Preview')
+        st.write(df.head())
+        st.subheader('Selected Data - Preview')
+
+        st.write(df_reduced.head())
 
     f1 = plot_time_series_plotly(df_reduced)
     st.plotly_chart(f1, use_container_width=True)
@@ -112,9 +128,6 @@ def main():
 
     if st.sidebar.button("Classify", key='classify'):
         st.write("That's it, folks!")
-
-
-
 
 
 if __name__ == '__main__':

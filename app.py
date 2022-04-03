@@ -16,6 +16,8 @@ from scipy.signal import detrend, savgol_filter
 def main():
 
     header = 0
+    uploaded_file = None
+
     @st.cache(persist=True)
     def load_data(header):
         data = pd.read_csv(uploaded_file,header = header)
@@ -27,18 +29,13 @@ def main():
         data = data.iloc[header:,[disp_col,load_col]]
         return data
 
-    #@st.cache(persist=True)
-    def plot_time_series(df):
-        f = plt.figure()
-        ax = f.add_subplot(1,1,1)
-        return f, ax
 
-    #@st.cache(persist=True)
+    @st.cache(persist=True)
     def plot_time_series_plotly(df):
         fig = px.line(df,title='Load and Displacement Data')#, x = df.columns[0], y = df.columns[1])
         return fig
 
-    #@st.cache(persist=True)
+    @st.cache(persist=True)
     def plot_ellipse_plotly(df):
         fig = px.scatter(df,
                          x = df.columns[0],
@@ -54,6 +51,12 @@ def main():
     st.sidebar.title("DMA Data Analyzer")
 
     uploaded_file = st.sidebar.file_uploader("Drag and Drop or Select Data")
+
+    if uploaded_file is None:
+        st.header('⬅ Please upload a .csv file.')
+        st.sidebar.header('⬆ Please upload a .csv file.')
+        st.stop()
+
     df = load_data(header)
 
     header = int(st.sidebar.number_input('header size', step=1, key='header_size'))
@@ -97,9 +100,10 @@ def main():
     f2 = plot_ellipse_plotly(df_reduced)
     st.plotly_chart(f2, use_container_width=True)
 
-        
+
     if st.sidebar.button("Classify", key='classify'):
         st.write("That's it, folks!")
+
 
 
 

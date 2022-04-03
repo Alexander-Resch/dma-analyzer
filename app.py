@@ -12,15 +12,23 @@ import matplotlib.pyplot as plt
 import plotly.figure_factory as ff
 import plotly.express as px
 from scipy.signal import detrend, savgol_filter
+import csv as cf
+from io import StringIO
 
 def main():
 
     header = 0
     uploaded_file = None
 
+    def find_header():
+        with StringIO(uploaded_file.getvalue().decode("utf-8")) as fin:
+            reader = cf.reader(fin)
+            idx = next(idx for idx, row in enumerate(reader) if len(row) > 1)  # 4
+        return idx
+
     @st.cache(persist=True)
     def load_data(header):
-        data = pd.read_csv(uploaded_file,header = header)
+        data = pd.read_csv(uploaded_file,header = find_header()+header)
         return data
 
 
@@ -59,11 +67,12 @@ def main():
 
     df = load_data(header)
 
-    header = int(st.sidebar.number_input('header size', step=1, key='header_size'))
+    header = int(st.sidebar.number_input('header size - adjust manually if needed', step=1, key='header_size'))
     df = load_data(header)
 
-    columns = st.sidebar.multiselect("Select Columns",
-                                     tuple([i for i in df.columns])
+    columns = st.sidebar.multiselect("Select Columns - Force and Displacement",
+                                     options=tuple([i for i in df.columns]),
+                                     default=tuple([i for i in df.columns if i in df.columns[3:5]])
                                      )
 
     drop_first = int(st.sidebar.number_input('Drop first n rows', min_value=100, step=100, key='drop_first'))
